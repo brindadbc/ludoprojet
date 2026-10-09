@@ -1,0 +1,8 @@
+build/
+ludo
+ludo.exe
+ludo_gui
+ludo_gui.exe
+*.o
+*.d
+*.ludo
