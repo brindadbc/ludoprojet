@@ -54,6 +54,7 @@ Color gui_contraste(Color f)
 void gui_charger_police(void)
 {
     static const char *chemins[] = {
+        "/fonts/DejaVuSans.ttf",                      /* version web (police embarquee) */
         "C:/Windows/Fonts/segoeui.ttf",
         "C:/Windows/Fonts/arial.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf",

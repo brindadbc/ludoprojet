@@ -13,6 +13,13 @@
 #define BX      30          /* coin haut-gauche du plateau */
 #define BY      30
 
+/* Fichier de sauvegarde. Version web : dossier /data, conserve par le navigateur (IndexedDB). */
+#ifdef PLATFORM_WEB
+#define FICHIER_SAUVEGARDE "/data/sauvegarde.ludo"
+#else
+#define FICHIER_SAUVEGARDE "sauvegarde.ludo"
+#endif
+
 typedef enum { ECRAN_MENU = 0, ECRAN_JEU = 1 } Ecran;
 typedef enum { MENU_RIEN, MENU_JOUER, MENU_CHARGER, MENU_QUITTER } MenuAction;
 
@@ -23,6 +30,9 @@ typedef struct {
     int     ia[MAX_JOUEURS];           /* 1 = ordinateur */
     ModeFin mode;
 } Config;
+
+/* ---- main_gui.c ---- */
+void gui_sauvegarde_persistante(void);     /* web : ecrit la sauvegarde dans le navigateur */
 
 /* ---- gui_dessin.c : outils de dessin ---- */
 void  gui_charger_police(void);

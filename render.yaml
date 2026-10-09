@@ -1,0 +1,10 @@
+# Configuration Render (Blueprint) : site statique qui sert le dossier web/
+services:
+  - type: web
+    name: ludoprojet
+    runtime: static
+    staticPublishPath: ./web
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

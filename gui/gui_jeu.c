@@ -25,8 +25,7 @@
 #define PW        340
 #define PCX       (PL + PW / 2)
 #define STEP      0.13f        /* duree d'un pas de pion (secondes) */
-#define NB_LOG    5
-#define FICHIER_SAUVEGARDE "sauvegarde.ludo"
+#define NB_LOG    7
 
 typedef enum { ST_LANCER, ST_DE, ST_PAUSE, ST_CHOIX, ST_ANIM, ST_FIN } Etat;
 typedef enum { PA_FIN_TOUR, PA_RELANCER, PA_JOUER } ApresPause;
@@ -65,7 +64,9 @@ static int        g_nvis = 0;
 static char       g_log[NB_LOG][110];
 static int        g_log_s[NB_LOG];
 
-static const Rectangle DE_RECT = { PCX - 52, 214, 104, 104 };
+static float      g_pct[MAX_JOUEURS];      /* pourcentage affiche (anime) */
+static float      g_de_x = 0.0f, g_de_y = 0.0f;
+static int        g_de_init = 0;
 
 /* ------------------------------------------------------------------ */
 /* Utilitaires                                                         */
@@ -107,6 +108,8 @@ static void reinitialiser_affichage(void)
     g_de = 0;
     g_n = 0;
     g_joueur_anim = -1;
+    g_de_init = 0;
+    g_pct[0] = g_pct[1] = g_pct[2] = g_pct[3] = -1.0f;   /* sera initialise au premier affichage */
     calculer_noms();
 }
 
@@ -129,6 +132,7 @@ static void empiler_evenement(TypeEvenement type, int j, const Coup *c, int rang
 
 static void commencer_lancer(float delai)
 {
+    g_de = 0;                               /* le de affiche "?" avant le lancer */
     g_etat = ST_LANCER;
     g_t = delai;
 }
@@ -385,7 +389,8 @@ static void mettre_a_jour(float dt)
         if (humain(j)) {
             if (libre && (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) ||
                 (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-                 CheckCollisionPointRec(GetMousePosition(), DE_RECT))))
+                 CheckCollisionPointRec(GetMousePosition(),
+                     (Rectangle){ g_de_x - 42, g_de_y - 42, 84, 84 }))))
                 lancer_de();
         } else {
             g_t -= dt;
@@ -474,6 +479,94 @@ static const char *rang_texte(int r)
     return (r >= 1 && r <= 4) ? T[r] : "";
 }
 
+/* Pourcentage d'avancement d'un joueur : somme des positions de ses pions
+ * rapportee au maximum (4 pions x 57 etapes). Le pion en train de bouger est
+ * interpole pour que la barre monte en douceur. */
+static float progression(int j)
+{
+    const Joueur *pl = &g_p.joueurs[j];
+    float total = 0.0f;
+    int k;
+    for (k = 0; k < NB_PIONS; k++) {
+        float pos = (float)pl->pions[k];
+        if (g_etat == ST_ANIM && j == g_joueur_anim && k == g_coup_anim.pion && g_nch >= 2) {
+            float f = g_anim_t / ((g_nch - 1) * STEP);
+            if (f > 1.0f) f = 1.0f;
+            pos = g_coup_anim.depart + (g_coup_anim.arrivee - g_coup_anim.depart) * f;
+        }
+        total += pos + 1.0f;
+    }
+    return 100.0f * total / (NB_PIONS * (POS_ARRIVEE + 1));
+}
+
+static void pct_texte(float v, char *buf, size_t n)
+{
+    snprintf(buf, n, "%d%%", (int)(v + 0.5f));
+}
+
+static void barre(float x, float y, float w, float h, float pct, Color c)
+{
+    DrawRectangleRounded((Rectangle){ x, y, w, h }, 0.5f, 6, (Color){ 226, 220, 212, 255 });
+    if (pct > 0.5f)
+        DrawRectangleRounded((Rectangle){ x, y, fmaxf(h, w * pct / 100.0f), h }, 0.5f, 6, c);
+}
+
+/* Point d'ancrage du de : au bord de la zone interieure de la base du joueur. */
+static void ancre_de(int siege, float *x, float *y)
+{
+    static const int ZONE[4][2] = { {0, 0}, {0, 9}, {9, 9}, {9, 0} };
+    float bx = BX + (ZONE[siege][1] + 1) * CS;
+    float by = BY + (ZONE[siege][0] + 1) * CS;
+    *x = bx + 2 * CS;
+    *y = (siege <= 1) ? by + 4 * CS : by;      /* bases du haut : dé en bas de la zone ; bases du bas : en haut */
+}
+
+/* Nom + pourcentage dans le coin de chaque base, cadre autour du joueur courant. */
+static void dessiner_bases_infos(void)
+{
+    static const int ZONE[4][2] = { {0, 0}, {0, 9}, {9, 9}, {9, 0} };
+    int j, cj = (g_etat == ST_FIN) ? -1 : courant();
+    float pulse = 0.5f + 0.5f * sinf(g_temps * 5.0f);
+
+    for (j = 0; j < g_p.nb_joueurs; j++) {
+        int s = siege_de(j);
+        Rectangle box = { BX + (ZONE[s][1] + 1) * CS, BY + (ZONE[s][0] + 1) * CS, 4 * CS, 4 * CS };
+        float cx = box.x + box.width / 2.0f;
+        float y0 = (s <= 1) ? box.y + 8 : box.y + box.height - 48;
+        char pc[16];
+
+        if (j == cj)
+            DrawRectangleLinesEx((Rectangle){ box.x - 4, box.y - 4, box.width + 8, box.height + 8 }, 4.0f,
+                                 Fade(WHITE, 0.35f + 0.65f * pulse));
+        gui_texte_tronque(g_noms[j], cx - 78, y0, 19, (Color){ 50, 44, 40, 255 }, 156);
+        barre(cx - 78, y0 + 29, 108, 9, g_pct[j], gui_couleur(s));
+        pct_texte(g_pct[j], pc, sizeof pc);
+        gui_texte_gras(pc, cx + 38, y0 + 22, 17, gui_couleur_sombre(s));
+    }
+}
+
+/* Le de, pose a cote de la base du joueur qui joue. */
+static void dessiner_de_plateau(void)
+{
+    int j = (g_etat == ST_FIN) ? -1 : courant();
+    Color accent = (j >= 0) ? gui_couleur(siege_de(j)) : (Color){ 150, 140, 130, 255 };
+    float tremble = 0.0f, saut = 0.0f, taille = 66.0f;
+    int valeur = g_de;
+
+    if (g_etat == ST_DE) {
+        tremble = sinf(g_temps * 60.0f) * 3.0f;
+        saut = fabsf(sinf(g_temps * 14.0f)) * 12.0f;
+        taille = 72.0f;
+        valeur = g_face;
+    }
+    if (j >= 0 && humain(j) && g_etat == ST_LANCER && g_modal == MOD_AUCUN) {
+        float p = sinf(g_temps * 5.0f);
+        DrawCircleV((Vector2){ g_de_x, g_de_y }, 56.0f + 4.0f * p, Fade(accent, 0.30f));
+        DrawRing((Vector2){ g_de_x, g_de_y }, 52.0f + 4.0f * p, 56.0f + 4.0f * p, 0, 360, 40, Fade(WHITE, 0.9f));
+    }
+    gui_dessiner_de(g_de_x + tremble, g_de_y - saut + tremble * 0.5f, taille, valeur, accent);
+}
+
 static void dessiner_panneau(void)
 {
     const Color encre = { 50, 44, 40, 255 };
@@ -499,50 +592,48 @@ static void dessiner_panneau(void)
                   band.y + 22, 17, gui_contraste(gui_couleur(s)));
     }
 
-    /* de */
-    {
-        Color accent = (j >= 0) ? gui_couleur(siege_de(j)) : (Color){ 150, 140, 130, 255 };
-        float tremble = (g_etat == ST_DE) ? sinf(g_temps * 60.0f) * 3.0f : 0.0f;
-        int valeur = (g_etat == ST_DE) ? g_face : g_de;
-        if (j >= 0 && humain(j) && g_etat == ST_LANCER)
-            DrawCircleV((Vector2){ PCX, 266 }, 68.0f + 4.0f * sinf(g_temps * 5.0f), Fade(accent, 0.22f));
-        gui_dessiner_de(PCX + tremble, 266 + tremble * 0.5f, 96, valeur, accent);
-        buf[0] = '\0';
-        if (g_etat == ST_LANCER && j >= 0)
-            snprintf(buf, sizeof buf, humain(j) ? "Cliquez sur le dé (ou ESPACE)" : "%s va lancer le dé...", g_noms[j]);
-        else if (g_etat == ST_DE)     snprintf(buf, sizeof buf, "Lancer en cours...");
-        else if (g_etat == ST_CHOIX)  snprintf(buf, sizeof buf, "Cliquez sur un pion lumineux");
-        else if (g_etat == ST_FIN)    snprintf(buf, sizeof buf, "Partie terminée");
-        else if (g_de > 0)            snprintf(buf, sizeof buf, "Résultat : %d", g_de);
-        gui_texte_centre(buf, PCX + 10, 326, 19, g_etat == ST_CHOIX ? encre : gris);
-    }
+    /* consigne */
+    buf[0] = '\0';
+    if (g_etat == ST_LANCER && j >= 0)
+        snprintf(buf, sizeof buf, humain(j) ? "Cliquez sur le dé (ou ESPACE)" : "%s va lancer le dé...", g_noms[j]);
+    else if (g_etat == ST_DE)    snprintf(buf, sizeof buf, "Lancer en cours...");
+    else if (g_etat == ST_CHOIX) snprintf(buf, sizeof buf, "Cliquez sur un pion lumineux");
+    else if (g_etat == ST_FIN)   snprintf(buf, sizeof buf, "Partie terminée");
+    else if (g_de > 0)           snprintf(buf, sizeof buf, "Résultat : %d", g_de);
+    gui_texte_centre(buf, PCX + 10, 156, 20, g_etat == ST_CHOIX ? encre : gris);
 
-    /* liste des joueurs */
+    /* avancement des joueurs */
+    gui_texte("Avancement", PL, 188, 16, gris);
     for (i = 0; i < g_p.nb_joueurs; i++) {
         const Joueur *pl = &g_p.joueurs[i];
-        float y = 364 + i * 36;
+        float y = 214 + i * 58, droite = PL + PW + 14;
         int k, arr = 0;
-        if (i == j) DrawRectangleRounded((Rectangle){ PL - 2, y - 4, PW + 24, 33 }, 0.3f, 8,
-                                         Fade(gui_couleur(pl->siege), 0.18f));
-        DrawCircleV((Vector2){ PL + 14, y + 14 }, 11, gui_couleur(pl->siege));
-        gui_texte_tronque(g_noms[i], PL + 34, y + 3, 20, encre, 150);
-        for (k = 0; k < NB_PIONS; k++) if (pl->pions[k] == POS_ARRIVEE) arr++;
-        for (k = 0; k < NB_PIONS; k++) {
-            Vector2 c = { PL + 222 + k * 20, y + 14 };
-            DrawCircleV(c, 7, arr > k ? gui_couleur(pl->siege) : (Color){ 226, 220, 212, 255 });
-            DrawCircleLines((int)c.x, (int)c.y, 7, gui_couleur_sombre(pl->siege));
+        char pc[16];
+        if (i == j) DrawRectangleRounded((Rectangle){ PL - 2, y - 7, PW + 24, 54 }, 0.2f, 8,
+                                         Fade(gui_couleur(pl->siege), 0.16f));
+        DrawCircleV((Vector2){ PL + 14, y + 11 }, 11, gui_couleur(pl->siege));
+        gui_texte_tronque(g_noms[i], PL + 34, y - 1, 20, encre, 190);
+        if (pl->rang > 0) {
+            const char *rt = rang_texte(pl->rang);
+            gui_texte_gras(rt, droite - gui_largeur(rt, 21), y - 2, 21, gui_couleur_sombre(pl->siege));
+        } else {
+            pct_texte(g_pct[i], pc, sizeof pc);
+            gui_texte_gras(pc, droite - gui_largeur(pc, 21), y - 2, 21, gui_couleur_sombre(pl->siege));
         }
-        if (pl->rang > 0) gui_texte_gras(rang_texte(pl->rang), PL + 312, y + 3, 19, gui_couleur_sombre(pl->siege));
+        barre(PL + 34, y + 25, droite - (PL + 34), 10, g_pct[i], gui_couleur(pl->siege));
+        for (k = 0; k < NB_PIONS; k++) if (pl->pions[k] == POS_ARRIVEE) arr++;
+        snprintf(buf, sizeof buf, "%d/4 pions arrivés", arr);
+        gui_texte(buf, PL + 34, y + 37, 13, gris);
     }
 
     /* journal */
     {
-        float y0 = 364 + 4 * 36 + 6;
+        float y0 = 214 + 4 * 58 + 2;
         gui_texte("Journal", PL, y0, 17, gris);
         DrawLine(PL, (int)y0 + 22, PL + PW + 20, (int)y0 + 22, (Color){ 225, 218, 210, 255 });
         for (i = 0; i < NB_LOG; i++) {
             Color c = g_log_s[i] >= 0 ? gui_couleur_sombre(g_log_s[i]) : gris;
-            if (i < NB_LOG - 1) c = Fade(c, 0.55f + 0.1f * i);
+            if (i < NB_LOG - 1) c = Fade(c, 0.45f + 0.09f * i);
             if (g_log[i][0] != '\0')
                 gui_texte_tronque(g_log[i], PL, y0 + 26 + i * 21, 17, c, PW + 16);
         }
@@ -550,8 +641,10 @@ static void dessiner_panneau(void)
 
     /* boutons */
     if (gui_bouton((Rectangle){ PL, 654, 76, 34 }, "Sauver", (Color){ 56, 140, 90, 255 }, 17, actif)) {
-        if (sauvegarder_partie(&g_p, FICHIER_SAUVEGARDE) == SAUV_OK)
+        if (sauvegarder_partie(&g_p, FICHIER_SAUVEGARDE) == SAUV_OK) {
+            gui_sauvegarde_persistante();
             log_ajouter(-1, "Partie sauvegardée.");
+        }
         else
             log_ajouter(-1, "Erreur de sauvegarde !");
     }
@@ -633,7 +726,7 @@ static int dessiner_modal(void)
         gui_texte_centre("Retourner au menu ?", carte.x + carte.width / 2, carte.y + 24, 32, (Color){ 50, 44, 40, 255 });
         if (gui_bouton((Rectangle){ carte.x + 50, carte.y + 90, 400, 44 }, "Sauvegarder et quitter",
                        (Color){ 56, 140, 90, 255 }, 21, 1)) {
-            sauvegarder_partie(&g_p, FICHIER_SAUVEGARDE);
+            if (sauvegarder_partie(&g_p, FICHIER_SAUVEGARDE) == SAUV_OK) gui_sauvegarde_persistante();
             retour_menu = 1;
         }
         if (gui_bouton((Rectangle){ carte.x + 50, carte.y + 148, 400, 44 }, "Quitter sans sauvegarder",
@@ -656,9 +749,27 @@ int gui_jeu_frame(void)
     if (IsKeyPressed(KEY_ESCAPE) && g_modal == MOD_AUCUN) g_modal = MOD_QUITTER;
     if (g_modal == MOD_AUCUN) mettre_a_jour(dt);
 
+    /* pourcentages et de : mouvements doux */
+    {
+        int i, cj = (g_etat == ST_FIN) ? -1 : courant();
+        float k = fminf(1.0f, GetFrameTime() * 8.0f);
+        for (i = 0; i < g_p.nb_joueurs; i++) {
+            float cible = progression(i);
+            g_pct[i] = (g_pct[i] < 0.0f) ? cible : g_pct[i] + (cible - g_pct[i]) * k;
+        }
+        if (cj >= 0) {
+            float ax, ay, kd = fminf(1.0f, GetFrameTime() * 9.0f);
+            ancre_de(siege_de(cj), &ax, &ay);
+            if (!g_de_init) { g_de_x = ax; g_de_y = ay; g_de_init = 1; }
+            else { g_de_x += (ax - g_de_x) * kd; g_de_y += (ay - g_de_y) * kd; }
+        }
+    }
+
     calculer_visuels();
     gui_dessiner_plateau(&g_p);
+    dessiner_bases_infos();
     dessiner_pions();
+    if (g_de_init) dessiner_de_plateau();
     dessiner_panneau();
     if (g_etat == ST_FIN) {
         dessiner_fin();

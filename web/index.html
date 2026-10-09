@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>LudoProjet - Groupe 1</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #eee9de; overflow: hidden;
+                 font-family: system-ui, Segoe UI, Arial, sans-serif; }
+    #conteneur { height: 100%; display: flex; align-items: center; justify-content: center; }
+    canvas#canvas { display: block; outline: none; background: #eee9de;
+                    width: min(100vw, calc(100vh * 1100 / 720)); height: auto;
+                    aspect-ratio: 1100 / 720; }
+    #chargement { position: fixed; inset: 0; display: flex; flex-direction: column;
+                  align-items: center; justify-content: center; color: #4a3e38; background: #eee9de; }
+    #chargement h1 { font-size: 3rem; margin: 0 0 .5rem; letter-spacing: .3rem; }
+    #barre { width: min(60vw, 320px); height: 10px; background: #ddd5c8; border-radius: 5px; overflow: hidden; }
+    #progres { height: 100%; width: 0; background: #e24040; transition: width .2s; }
+  </style>
+</head>
+<body>
+  <div id="conteneur"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas></div>
+  <div id="chargement">
+    <h1>LUDO</h1>
+    <div id="barre"><div id="progres"></div></div>
+    <p id="etat">Chargement...</p>
+  </div>
+  <script>
+    var canvas = document.getElementById('canvas');
+    canvas.width = 1100; canvas.height = 720;
+    canvas.addEventListener('mousedown', function () { canvas.focus(); });
+    window.addEventListener('keydown', function (e) {
+      if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].indexOf(e.key) >= 0) e.preventDefault();
+    }, { passive: false });
+    var Module = {
+      canvas: canvas,
+      print: function (t) { console.log(t); },
+      printErr: function (t) { console.warn(t); },
+      setStatus: function (t) {
+        var m = /\((\d+(?:\.\d+)?)\/(\d+)\)/.exec(t);
+        if (m) document.getElementById('progres').style.width = (100 * m[1] / m[2]) + '%';
+        if (t === '') document.getElementById('chargement').style.display = 'none';
+        else document.getElementById('etat').textContent = t;
+      },
+      onRuntimeInitialized: function () { document.getElementById('chargement').style.display = 'none'; canvas.focus(); }
+    };
+  </script>
+  <script async type="text/javascript" src="index.js"></script>
+</body>
+</html>
+
+

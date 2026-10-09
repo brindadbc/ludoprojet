@@ -148,7 +148,7 @@ MenuAction gui_menu(Config *cfg)
     if (gui_bouton((Rectangle){ 760, 604, 180, 30 }, "Règles", (Color){ 140, 130, 124, 255 }, 18, !modal))
         g_regles = 1;
     if (gui_bouton((Rectangle){ 760, 640, 85, 30 }, "Charger", (Color){ 140, 130, 124, 255 }, 18,
-                   !modal && FileExists("sauvegarde.ludo")))
+                   !modal && FileExists(FICHIER_SAUVEGARDE)))
         action = MENU_CHARGER;
     if (gui_bouton((Rectangle){ 855, 640, 85, 30 }, "Quitter", (Color){ 140, 130, 124, 255 }, 18, !modal))
         action = MENU_QUITTER;
