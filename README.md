@@ -13,10 +13,10 @@
 |---|---|---|
 | **DJUIKOUO BRINDA CARELLE** |  Chef d'équipe | Coordination, dépôt Git, intégration, démo finale |
 | MAWE POKAM DIVINE | Développeur | Plateau, déplacements (`plateau.c`, `regles.c`) |
-| BOUCHE FOTSO MERVEILLE | Développeur | Tours de jeu, IA, sauvegarde (`jeu.c`, `joueur.c`, `sauvegarde.c`) |
+| BOUCHE FOTSO MERVEILLE | Développeur | Tours de jeu, sauvegarde (`jeu.c`, `joueur.c`, `sauvegarde.c`) |
 | TIWA BRICE| Développeur / Qualité | Affichage, tests, documentation (`affichage.c`, `tests/`, `docs/`) |
 
-> ✏️ Remplacez les crochets ici et dans `src/affichage.c` (fonction `affichage_equipe`).
+
 
 ---
 
