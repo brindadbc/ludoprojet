@@ -20,7 +20,7 @@
 
 ---
 
-## 📖 Description
+##  Description
 
 **LudoProjet** reproduit le jeu de société Ludo : chaque joueur possède 4 pions qu'il doit faire sortir de sa base (avec un 6), faire avancer sur la piste de 52 cases, puis amener jusqu'à la maison en entrant dans son couloir d'arrivée.
 
@@ -49,7 +49,7 @@
 
 ---
 
-## ▶️ Installation et lancement
+##  Installation et lancement
 
 ### Windows (MSYS2)
 
@@ -64,7 +64,7 @@
    make
    ./ludo_gui.exe
    ```
-
+ce rassurer d'avoir installer raylib pour l'affichage de l'interface 
 > Lancer `ludo_gui.exe` depuis le terminal MSYS2 UCRT64 : c'est là que les DLL nécessaires sont trouvées.
 
 ### Linux / macOS
@@ -94,7 +94,7 @@ Options de lancement : `--seed N` (partie reproductible), `--demo` (4 ordinateur
 
 ---
 
-## 🌐 Version web : jouer dans le navigateur et publier sur Render
+##  Version web : jouer dans le navigateur et publier sur Render
 
 Le jeu est aussi compilé en **WebAssembly** : il se joue dans un navigateur, sans rien installer. Le dossier `web/` contient déjà la version compilée (`index.html`, `index.js`, `index.wasm`, `index.data`).
 
@@ -179,18 +179,18 @@ Case absolue sur la piste : `(siège × 13 + position) mod 52`.
 
 | Séance | Jalon | Tâches de l'équipe | Statut |
 |:---:|---|---|:---:|
-| **1** | Vision produit | Sujet, fiche de vision, présentation de l'équipe, dépôt Git | ✅ |
-| 2–3 | Algorithmes | Pseudo-code : dé, tour de jeu, règles de sortie | ✅ (`docs/algorithmes.md`) |
-| **4** | Convention pseudo-code | Algorithmes : déplacement, capture, victoire | ✅ |
-| **5** | Premier algorithme en C | Dé, tour simple | ✅ |
-| 6–7 | C structuré | Structures `Joueur`/`Partie`, découpage en modules, Makefile | ✅ |
-| **8** | Module C fonctionnel | `regles` + `plateau` testés | ✅ |
-| 9–11 | Structures de données | Pions, captures, tours | ✅ |
-| **12** | Structures linéaires | File des tours, pile d'historique | ✅ |
-| 13–15 | Structures avancées | Classement, sauvegarde/chargement | ✅ |
-| **16** | Structures avancées | Intégration complète, IA, victoire | ✅ |
-| 17–19 | Finalisation | Tests, correction, documentation | 🔄 relecture par l'équipe |
-| **20** | **Démo finale** | Présentation d'une partie complète | ⬜ |
+| **1** | Vision produit | Sujet, fiche de vision, présentation de l'équipe, dépôt Git | |
+| 2–3 | Algorithmes | Pseudo-code : dé, tour de jeu, règles de sortie |  (`docs/algorithmes.md`) |
+| **4** | Convention pseudo-code | Algorithmes : déplacement, capture, victoire |  |
+| **5** | Premier algorithme en C | Dé, tour simple |  |
+| 6–7 | C structuré | Structures `Joueur`/`Partie`, découpage en modules, Makefile |  |
+| **8** | Module C fonctionnel | `regles` + `plateau` testés |  |
+| 9–11 | Structures de données | Pions, captures, tours |  |
+| **12** | Structures linéaires | File des tours, pile d'historique |  |
+| 13–15 | Structures avancées | Classement, sauvegarde/chargement |  |
+| **16** | Structures avancées | Intégration complète, IA, victoire |  |
+| 17–19 | Finalisation | Tests, correction, documentation |  relecture par l'équipe |
+| **20** | **Démo finale** | Présentation d'une partie complète |  |
 
 ---
 
