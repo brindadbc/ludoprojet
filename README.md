@@ -9,18 +9,18 @@
 
 ## 👥 Équipe (Groupe 1)
 
-## Équipe (Groupe 1)
-
 | Nom & prénom | Rôle | Responsabilités principales |
 |---|---|---|
-| **DJUIKOUO BRINDA CARELLE** | Chef d'équipe | Coordination, dépôt Git, intégration, `api_web.c`, démo finale |
-| MAWE POKAM DIVINE | Développeur | Plateau, déplacements (`plateau.c`, `regles.c`), plateau web |
-| BOUCHE FOTSO MERVEILLE | Développeur | Tours de jeu, IA, sauvegarde (`jeu.c`, `joueur.c`, `sauvegarde.c`) |
-| TIWA BRICE | Développeur / Qualité | Affichage, interface web, tests, documentation (`affichage.c`, `web/`, `tests/`, `docs/`) |
+| **DJUIKOUO BRINDA CARELLE** |  Chef d'équipe | Coordination, dépôt Git, intégration, démo finale |
+| MAWE POKAM DIVINE | Développeur | Plateau, déplacements (`plateau.c`, `regles.c`) |
+| BOUCHE FOTSO MERVEILLE | Développeur | Tours de jeu, sauvegarde (`jeu.c`, `joueur.c`, `sauvegarde.c`) |
+| TIWA BRICE| Développeur / Qualité | Affichage, tests, documentation (`affichage.c`, `tests/`, `docs/`) |
+
+
 
 ---
 
-## 📖 Description
+##  Description
 
 **LudoProjet** reproduit le jeu de société Ludo : chaque joueur possède 4 pions qu'il doit faire sortir de sa base (avec un 6), faire avancer sur la piste de 52 cases, puis amener jusqu'à la maison en entrant dans son couloir d'arrivée.
 
@@ -28,6 +28,8 @@
 
 - 2 à 4 joueurs, chacun **humain ou ordinateur** (IA à heuristique : arrivée > capture > sortie de base > prudence)
 - **Interface graphique** (bibliothèque raylib) : plateau en couleurs, **dé cliquable animé**, **pions qui sautent de case en case**, pions jouables qui brillent, journal des coups, fenêtre redimensionnable
+- **Pourcentage d'avancement de chaque joueur**, mis à jour en direct (barre de progression dans le coin de sa base et dans le panneau)
+- **Le dé se déplace vers la base du joueur dont c'est le tour**, qui est entourée d'un cadre clignotant
 - Dé aléatoire ; **rejouer** sur 6, capture ou arrivée ; **3 six de suite = tour perdu**
 - **Captures**, **cases sûres** (départs et étoiles), **tours** (2 pions superposés = imprenables)
 - Arrivée à la maison au **nombre exact**
@@ -47,7 +49,7 @@
 
 ---
 
-## ▶️ Installation et lancement
+##  Installation et lancement
 
 ### Windows (MSYS2)
 
@@ -62,7 +64,7 @@
    make
    ./ludo_gui.exe
    ```
-
+ce rassurer d'avoir installer raylib pour l'affichage de l'interface 
 > Lancer `ludo_gui.exe` depuis le terminal MSYS2 UCRT64 : c'est là que les DLL nécessaires sont trouvées.
 
 ### Linux / macOS
@@ -92,7 +94,32 @@ Options de lancement : `--seed N` (partie reproductible), `--demo` (4 ordinateur
 
 ---
 
-## 🧱 Architecture
+##  Version web : jouer dans le navigateur et publier sur Render
+
+Le jeu est aussi compilé en **WebAssembly** : il se joue dans un navigateur, sans rien installer. Le dossier `web/` contient déjà la version compilée (`index.html`, `index.js`, `index.wasm`, `index.data`).
+
+**1. Tester en local** (le jeu doit être servi par un petit serveur, pas ouvert par double-clic) :
+```bash
+cd web
+python -m http.server 8000
+```
+puis ouvrir http://localhost:8000 dans le navigateur.
+
+**2. Publier sur Render (gratuit)** :
+1. Pousser le projet sur GitHub **avec le dossier `web/`** (`git add . && git commit -m "feat: version web" && git push`).
+2. Sur https://render.com : **New +** → **Static Site** → choisir le dépôt `ludoprojet`.
+3. Renseigner : **Build Command** : laisser vide · **Publish Directory** : `web`.
+4. **Create Static Site** : au bout d'une minute, le jeu est en ligne sur `https://ludoprojet.onrender.com` (ou un nom proche).
+
+(Alternative : le fichier `render.yaml` à la racine permet de créer le site avec **New + → Blueprint**.)
+
+**Particularités de la version web** : la fenêtre s'adapte à la taille de l'onglet ; la sauvegarde est conservée **dans le navigateur** (propre à chaque appareil) ; le bouton « Quitter » est remplacé par la fermeture de l'onglet ; les joueurs jouent sur le même écran (pas de partie en réseau).
+
+**Recompiler la version web** (seulement si le code change) : installer Emscripten, compiler raylib pour le web, puis lancer `./build_web.sh`.
+
+---
+
+##  Architecture
 
 ```
 ludoprojet/
@@ -119,6 +146,11 @@ ludoprojet/
 │   ├── gui_jeu.c              # machine à états d'un tour, animations, panneau
 │   ├── gui_dessin.c           # plateau, pions, dé, boutons, texte
 │   └── gui_common.h
+├── web/                       # version WebAssembly prête à publier (Render)
+├── web_src/                   # page HTML du jeu web et petit correctif de compatibilité
+├── fonts_web/                 # police embarquée dans la version web
+├── build_web.sh               # compile la version web (Emscripten)
+├── render.yaml                # configuration Render
 └── tests/
     ├── test_regles.c          # tests unitaires
     └── test_simulation.c      # 1800 parties IA vs IA + vérification d'invariants
@@ -143,32 +175,32 @@ Case absolue sur la piste : `(siège × 13 + position) mod 52`.
 
 ---
 
-## 📅 Calendrier des tâches
+##  Calendrier des tâches
 
 | Séance | Jalon | Tâches de l'équipe | Statut |
 |:---:|---|---|:---:|
-| **1** | Vision produit | Sujet, fiche de vision, présentation de l'équipe, dépôt Git | ✅ |
-| 2–3 | Algorithmes | Pseudo-code : dé, tour de jeu, règles de sortie | ✅ (`docs/algorithmes.md`) |
-| **4** | Convention pseudo-code | Algorithmes : déplacement, capture, victoire | ✅ |
-| **5** | Premier algorithme en C | Dé, tour simple | ✅ |
-| 6–7 | C structuré | Structures `Joueur`/`Partie`, découpage en modules, Makefile | ✅ |
-| **8** | Module C fonctionnel | `regles` + `plateau` testés | ✅ |
-| 9–11 | Structures de données | Pions, captures, tours | ✅ |
-| **12** | Structures linéaires | File des tours, pile d'historique | ✅ |
-| 13–15 | Structures avancées | Classement, sauvegarde/chargement | ✅ |
-| **16** | Structures avancées | Intégration complète, IA, victoire | ✅ |
-| 17–19 | Finalisation | Tests, correction, documentation | 🔄 relecture par l'équipe |
-| **20** | **Démo finale** | Présentation d'une partie complète | ⬜ |
+| **1** | Vision produit | Sujet, fiche de vision, présentation de l'équipe, dépôt Git | |
+| 2–3 | Algorithmes | Pseudo-code : dé, tour de jeu, règles de sortie |  (`docs/algorithmes.md`) |
+| **4** | Convention pseudo-code | Algorithmes : déplacement, capture, victoire |  |
+| **5** | Premier algorithme en C | Dé, tour simple |  |
+| 6–7 | C structuré | Structures `Joueur`/`Partie`, découpage en modules, Makefile |  |
+| **8** | Module C fonctionnel | `regles` + `plateau` testés |  |
+| 9–11 | Structures de données | Pions, captures, tours |  |
+| **12** | Structures linéaires | File des tours, pile d'historique |  |
+| 13–15 | Structures avancées | Classement, sauvegarde/chargement |  |
+| **16** | Structures avancées | Intégration complète, IA, victoire |  |
+| 17–19 | Finalisation | Tests, correction, documentation |  relecture par l'équipe |
+| **20** | **Démo finale** | Présentation d'une partie complète |  |
 
 ---
 
-## 🌿 Organisation Git
+##  Organisation Git
 
 - `main` : version stable, toujours compilable (`make test` doit passer)
 - une branche par fonctionnalité : `feature/ia`, `feature/sauvegarde`…
 - commits clairs : `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`
 - intégration par **Pull Request** relue par le chef d'équipe
 
-## 📜 Licence
+##  Licence
 
 Projet pédagogique – ISESTMA 2026-2027.
